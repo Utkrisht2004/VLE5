@@ -57,4 +57,8 @@ jobs:
 
       - name: Deploy to Kubernetes
         run: |
-          ssh -i ~/.ssh/id_rsa ubuntu@${{ needs.terraform.outputs.instance_ip }} "kubectl apply -f k8s/deployment.yaml"
+          # 1. Securely copy the k8s folder from GitHub to the AWS EC2 server
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r k8s ubuntu@${{ needs.terraform.outputs.instance_ip }}:~/k8s
+          
+          # 2. SSH into the AWS server and apply the file we just copied
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@${{ needs.terraform.outputs.instance_ip }} "kubectl apply -f ~/k8s/deployment.yaml"
