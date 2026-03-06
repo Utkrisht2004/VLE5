@@ -12,10 +12,8 @@ jobs:
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-    
     outputs:
       instance_ip: ${{ steps.set-ip.outputs.instance_ip }}
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -38,4 +36,25 @@ jobs:
           echo "instance_ip=$IP" >> $GITHUB_OUTPUT
         working-directory: ./terraform
 
-  # We will add the Ansible and K8s jobs here in the next step!
+  deploy:
+    name: "Configure and Deploy"
+    needs: terraform  # This is the "Link" that makes it keep going
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ needs.terraform.outputs.instance_ip }} >> ~/.ssh/known_hosts
+
+      - name: Run Ansible Playbook
+        run: |
+          ansible-playbook -i '${{ needs.terraform.outputs.instance_ip }},' ./ansible/setup.yml -u ubuntu --private-key ~/.ssh/id_rsa
+
+      - name: Deploy to Kubernetes
+        run: |
+          ssh -i ~/.ssh/id_rsa ubuntu@${{ needs.terraform.outputs.instance_ip }} "kubectl apply -f k8s/deployment.yaml"
