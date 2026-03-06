@@ -14,7 +14,8 @@ spec:
     spec:
       containers:
       - name: bitedash-container
-        image: nginx:latest
+        image: devops-lab-app:latest
+        imagePullPolicy: Never
         ports:
         - containerPort: 80
 

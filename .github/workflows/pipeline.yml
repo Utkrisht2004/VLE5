@@ -57,8 +57,8 @@ jobs:
 
       - name: Deploy to Kubernetes
         run: |
-          # 1. Securely copy the k8s folder from GitHub to the AWS EC2 server
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r k8s ubuntu@${{ needs.terraform.outputs.instance_ip }}:~/k8s
+          # 1. Securely copy BOTH the k8s and app folders to the AWS server
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r k8s app ubuntu@${{ needs.terraform.outputs.instance_ip }}:~/
           
-          # 2. Start Minikube and apply the deployment
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@${{ needs.terraform.outputs.instance_ip }} "sudo minikube start --force && sudo kubectl apply -f ~/k8s/deployment.yaml"
+          # 2. Start Minikube, build the Docker image, apply K8s, and open the port
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@${{ needs.terraform.outputs.instance_ip }} "sudo minikube start --force && sudo minikube image build -t devops-lab-app:latest ~/app && sudo kubectl apply -f ~/k8s/deployment.yaml && sudo nohup kubectl port-forward --address 0.0.0.0 svc/bitedash-service 30001:80 < /dev/null > /dev/null 2>&1 &"
