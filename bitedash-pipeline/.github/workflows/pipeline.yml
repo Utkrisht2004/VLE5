@@ -1,0 +1,41 @@
+name: "BiteDash End-to-End Pipeline"
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  terraform:
+    name: "Provision Infrastructure"
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    
+    outputs:
+      instance_ip: ${{ steps.set-ip.outputs.instance_ip }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./terraform
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        working-directory: ./terraform
+
+      - name: Get Instance IP
+        id: set-ip
+        run: |
+          IP=$(terraform output -raw instance_ip)
+          echo "instance_ip=$IP" >> $GITHUB_OUTPUT
+        working-directory: ./terraform
+
+  # We will add the Ansible and K8s jobs here in the next step!
