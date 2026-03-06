@@ -18,7 +18,18 @@
         state: started
         enabled: yes
 
-    - name: Install kubectl (Required for next phase)
+    - name: Install conntrack (Minikube dependency)
+      apt:
+        name: conntrack
+        state: present
+
+    - name: Install kubectl
       snap:
         name: kubectl
         classic: yes
+
+    - name: Download Minikube
+      get_url:
+        url: https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+        dest: /usr/local/bin/minikube
+        mode: '0755'
